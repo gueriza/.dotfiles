@@ -1,116 +1,96 @@
 # DOTFILES
 
-**Generated:** 2026-05-09T00:00:00Z
-**Commit:** 871ce6f
+Minimal, opinionated macOS development environment managed through a custom `dot` CLI, GNU Stow, and Homebrew.
 
-macOS dev env via GNU Stow. Fish + Neovim + Herdr + Git + pi.
+## Project overview
 
-## STRUCTURE
+This repository configures a new Mac with a small set of CLI tools and applications, Git configuration, and curated macOS system defaults. It is intentionally minimal: no Fish shell, no Neovim, no Bun/Vite+, no MonoLisa font.
+
+## Structure
 
 ```
 .dotfiles/
-├── dot                 # CLI: init/update/doctor/stow/package (2500 lines bash)
-├── home/.config/       # Stowed to ~/.config/
-│   ├── fish/           # Shell (AGENTS.md)
-│   ├── nvim/           # Editor (AGENTS.md)
-│   ├── herdr/          # Terminal-native workspace/tab/pane manager
-│   ├── git/            # Conditional work config
-│   ├── ghostty/        # Terminal
-│   ├── starship.toml   # Prompt (custom.scm, 2s timeout for Vite+)
-│   └── ripgrep/        # rg config
-├── home/.agents/       # Shared agent skills (stowed to ~/.agents/)
-│   └── skills/         # SKILL.md packages for pi and other agents
-├── home/.pi/           # Pi agent workspace (AGENTS.md)
-│   └── agent/extensions/ # TypeScript extensions
+├── dot                 # Main CLI tool (~2200 lines bash)
+├── scripts/
+│   └── macos.sh        # Curated macOS defaults script
+├── home/               # Stowed to ~
+│   ├── .config/
+│   │   ├── git/        # Git configuration and aliases
+│   │   └── ...
+│   └── .ideavimrc      # IntelliJ IDEA Vim config
 ├── packages/
-│   ├── bundle          # Base Brewfile (32 formulas, 13 casks)
-│   └── bundle.work     # Work additions (formulas only)
-└── docs/
+│   ├── bundle          # Base Brewfile
+│   └── bundle.work     # Optional work-specific packages
+├── AGENTS.md           # This file
+└── README.md
 ```
 
-## WHERE TO LOOK
+## Current bundle
 
-| Task | Location |
-|------|----------|
-| Add package | `dot package add <name>` or edit `packages/bundle` |
-| Shell alias/abbr | `home/.config/fish/conf.d/aliases.fish` |
-| Shell function | `home/.config/fish/functions/` |
-| Git alias | `home/.config/git/config` [alias] section |
-| Neovim plugin | `home/.config/nvim/lua/plugins/<name>.lua` |
-| Neovim keymap | `home/.config/nvim/lua/dmmulroy/keymaps.lua` |
-| Herdr config | `home/.config/herdr/config.toml` |
-| Starship prompt | `home/.config/starship.toml` |
-| Agent skill | `home/.agents/skills/<name>/SKILL.md` |
-| Pi extension | `home/.pi/agent/extensions/<name>/` |
-| Pi settings | `home/.pi/agent/settings.json` |
-| Work git identity | Auto via `home/.config/git/work_config` for `~/Code/work/` |
+`packages/bundle` contains only requested apps plus essentials:
 
-## CONVENTIONS
-
-- Stow layout: `home/` mirrors `~`, stow creates symlinks
-- Fish: `conf.d/` auto-sourced, `functions/` lazy-loaded
-- Neovim: 1 plugin per file in `lua/plugins/`, returns lazy.nvim spec
-- Git abbrs: ~180 oh-my-zsh style via `__git.init.fish`
-- Private helpers: prefix `__` (e.g., `__git.default_branch`)
-- Pi extensions: TypeScript, npm workspaces under `home/.pi/`
-- Agent skills: Markdown-first (`SKILL.md`) under `home/.agents/skills/`, stowed to `~/.agents/skills/`
-
-## ANTI-PATTERNS
-
-- Edit `~/.config/*` directly (changes lost on stow)
-- Casks in `bundle.work` (use base bundle)
-- Hardcode paths (use `$DOTFILES_DIR`, `$HOME`)
-- Nested git repos in stowed dirs (creates symlink issues)
-- node_modules in stowed dirs (pi extensions exception — gitignored)
-- Skill copies under `home/.pi/agent/skills/` or `~/.pi/agent/skills/`
-- Replacing `~/.agents/skills/<name>` stow symlinks with real directories
-
-## IF YOU NOTICE SKILL LAYOUT DRIFT — FIX IT
-
-Canonical skills live in `home/.agents/skills/<name>/` and stow to `~/.agents/skills/<name>` as a symlink. If you see any of these, fix them without being asked:
-
-- A skill under `home/.pi/agent/skills/` or `~/.pi/agent/skills/`: move unique content into `home/.agents/skills/`, then delete the `.pi` copy/symlink.
-- `~/.agents/skills/<name>` is a real directory instead of a symlink: copy it back into `home/.agents/skills/<name>/`, remove the live dir, restore the stow symlink.
-- `skills` / `vpx skills add|update` wrote copies into `~/.agents` or `~/.pi`: fold the content into the repo copy, restore stow symlinks, do not leave a second tree.
-- Do not restore skills the user deleted from `home/.agents/skills/`.
-
-## COMMANDS
-
-```bash
-dot init              # Full setup (brew, stow, bun, ssh, font, fish)
-dot update            # Pull + brew update/upgrade + restow + pi update
-dot doctor            # Health check
-dot stow              # Resymlink only
-dot package add X     # Add + install package
-dot benchmark-shell   # Fish startup perf
-dot gen-ssh-key       # Generate ed25519 key by email domain
+```ruby
+tap "homebrew/cask-fonts"
+brew "gh"
+brew "stow"
+cask "font-sf-mono"
+cask "betterdisplay"
+cask "hiddenbar"
+cask "ollama"
+cask "orbstack"
+cask "raycast"
+cask "supacode"
 ```
 
-## KEY CONFIGS
+## `dot` commands
 
-| Tool | Entry | Notes |
-|------|-------|-------|
-| Fish | `config.fish` | Sources `conf.d/`, sets EDITOR/MANPAGER |
-| Neovim | `init.lua` | 1 line: `require("dmmulroy")` |
-| Herdr | `config.toml` | Prefix `C-;`, workspaces/tabs/panes |
-| Git | `config` | SSH signing, `pull.rebase`, conditional include |
-| Starship | `starship.toml` | 2s timeout (Vite+ shims), custom.scm after dir |
-| Pi | `settings.json` | Default provider: opencode.cloudflare.dev, Catppuccin theme |
+| Command | Purpose |
+|---------|---------|
+| `dot init` | Full setup: Homebrew → Brewfile → Stow → pi → SSH key → computer rename |
+| `dot update` | Pull dotfiles, update Homebrew, re-stow, update pi |
+| `dot doctor` | Environment diagnostics |
+| `dot macos` | Apply curated macOS defaults (requires sudo, asks confirmation) |
+| `dot stow` | Re-create symlinks from `home/` to `~` |
+| `dot link` / `dot unlink` | Add/remove global `dot` symlink in PATH |
+| `dot package list|add|remove|update` | Manage Brewfile packages |
+| `dot check-packages` | Show installed vs missing packages |
+| `dot retry-failed` | Retry packages that failed during init |
+| `dot gen-ssh-key [email]` | Generate `~/.ssh/ghssh` Ed25519 key |
+| `dot rename-computer` | Rename Mac to `RY<serial_number>` automatically |
+| `dot edit` | Open dotfiles in `$EDITOR` |
 
-## UNIQUE STYLES
+## Init flow
 
-- herdr prefix: `C-;`
-- herdr splits: `\` split right, `Enter` split down
-- herdr pane navigation: direct `C-h/j/k/l`
-- nvim: `jj`/`JJ` exit insert, `H`/`L` line start/end
-- nvim completion: blink.cmp (not nvim-cmp), LSP source score_offset=1000
-- git: `fomo` = fetch origin main + rebase
-- Theme: Catppuccin Macchiato across all tools
+All steps are required; there are no skip flags.
 
-## NOTES
+1. Check for Administrator privileges
+2. Install Xcode Command Line Tools if missing
+3. Install Homebrew
+4. Install packages from `packages/bundle`
+5. Stow dotfiles from `home/` to `~`
+6. Install pi via `https://pi.dev/install.sh`
+7. Generate SSH key for GitHub at `~/.ssh/ghssh`
+8. Rename computer to `RY<serial_number>`
 
-- `dot update` handles WARP VPN brew API issues automatically
-- Starship `command_timeout = 2000` because Vite+ node shims are slow
-- `secrets.fish` is gitignored — contains env tokens for work services
-- `.pi/agent/*` mostly gitignored; extensions explicitly un-ignored
-- jj was removed; repo now uses git only
+## Conventions
+
+- Edit files in `home/`, not directly in `~/.config/`
+- Add packages with `dot package add <name>` so sorting and type detection are handled
+- `packages/bundle` holds all casks and shared formulae
+- `packages/bundle.work` is optional and formulas only
+- Use the noreply GitHub email for commits: `4548351+gueriza@users.noreply.github.com`
+- Git identity: `Riza Yahya <4548351+gueriza@users.noreply.github.com>`
+
+## Anti-patterns
+
+- Editing `~/.config/*` directly (changes are lost on re-stow)
+- Putting casks in `packages/bundle.work`
+- Adding skip flags to `dot init`
+- Installing Fish, Neovim, Herdr, Bun, Vite+, or MonoLisa via this setup
+- Using the private `gueriza@me.com` email for GitHub commits
+
+## Notes
+
+- `dot macos` keeps press-and-hold enabled for umlauts and skips Mail, Notification Center, Spotlight re-indexing, hibernation, Terminal/iTerm, and Activity Monitor tweaks.
+- `dot init` requires an admin user on macOS because Homebrew requires it.
+- This setup uses **zsh** or the default login shell, not Fish.
