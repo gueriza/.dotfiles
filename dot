@@ -58,6 +58,19 @@ __command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+__ensure_xcode_clt() {
+    if xcode-select -p &>/dev/null; then
+        return 0
+    fi
+
+    __print_info "Xcode Command Line Tools not found. Installing..."
+    __print_warning "A system dialog will appear. Accept the license and wait for the installation to complete."
+    xcode-select --install
+
+    __print_info "Press Enter once the installation is complete to continue..."
+    read -r
+}
+
 __confirm() {
     local prompt="${1:-Continue?}"
     local default="${2:-n}"
@@ -701,6 +714,8 @@ EOF
 # Command functions
 cmd_init() {
     __require_no_args init "$@" || return 1
+
+    __ensure_xcode_clt
 
     __print_header "Initializing dotfiles"
     __run_init_steps || return 1
