@@ -14,9 +14,15 @@ This repository configures a new Mac with a small set of CLI tools and applicati
 ├── scripts/
 │   └── macos.sh        # Curated macOS defaults script
 ├── home/               # Stowed to ~
-│   └── .config/
-│       ├── git/        # Git configuration and aliases
-│       └── ...
+│   ├── .config/
+│   │   ├── git/        # Git configuration and aliases
+│   │   └── ...
+│   ├── .agents/        # Shared agent skills (stowed to ~/.agents/)
+│   │   └── skills/
+│   ├── .pi/            # Global pi config and extensions (stowed to ~/.pi/)
+│   │   ├── agent/extensions/  # TypeScript pi extensions
+│   │   └── agent/settings.json
+│   └── .local/bin/     # Optional helper scripts
 ├── packages/
 │   ├── bundle          # Base Brewfile
 │   └── bundle.work     # Optional work-specific packages
@@ -43,6 +49,21 @@ cask "supacode"
 ```
 
 `micro` is the default terminal editor and Git's `core.editor`.
+
+## Pi extensions
+
+`home/.pi/` is stowed to `~/.pi/`. Pi auto-discovers TypeScript extensions from:
+
+- `~/.pi/agent/extensions/*.ts`
+- `~/.pi/agent/extensions/*/index.ts`
+
+Workspace-managed extensions (with their own `package.json`) live in `home/.pi/agent/extensions/`:
+
+- `opencode-cloudflare`
+- `pi-skill-toggle`
+- `save-md`
+
+After changing extension code or `package.json`, run `npm install` in `home/.pi/` and reload pi with `/reload`.
 
 ## `dot` commands
 
