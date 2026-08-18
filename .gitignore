@@ -68,4 +68,6 @@ home/.pi/agent/extensions/**/node_modules/
 !home/.pi/agent/extensions/**
 !home/.pi/agent/mcp.json
 !home/.pi/agent/APPEND_SYSTEM.md
+!home/.pi/agent/patches/
+!home/.pi/agent/patches/**
 

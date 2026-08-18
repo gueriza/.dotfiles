@@ -72,12 +72,13 @@ After changing extension code or `package.json`, run `npm install` in `home/.pi/
 | Agent skill | `home/.agents/skills/<name>/SKILL.md` | `~/.agents/skills/<name>/` |
 | Pi extension | `home/.pi/agent/extensions/<name>/` | `~/.pi/agent/extensions/<name>/` |
 | Pi settings | `home/.pi/agent/settings.json` | `~/.pi/agent/settings.json` |
+| BuildCrew tweaks | `home/.pi/agent/patches/buildcrew/` | `~/.pi/agent/patches/buildcrew/` |
 
 ## `dot` commands
 
 | Command | Purpose |
 |---------|---------|
-| `dot init` | Full setup: Homebrew → Brewfile → Stow → pi → pi packages → pi extension deps → SSH key → computer rename |
+| `dot init` | Full setup: Homebrew → Brewfile → Stow → pi → pi packages → BuildCrew tweaks → pi extension deps → SSH key → computer rename |
 | `dot update` | Pull dotfiles, update Homebrew, re-stow, update pi |
 | `dot doctor` | Environment diagnostics |
 | `dot macos` | Apply curated macOS defaults (requires sudo, asks confirmation) |
@@ -101,9 +102,10 @@ All steps are required; there are no skip flags.
 5. Stow dotfiles from `home/` to `~`
 6. Install pi via `https://pi.dev/install.sh`
 7. Install pi packages from `~/.pi/agent/settings.json` with `pi update`
-8. Install pi extension dependencies with `npm ci` in `~/.pi/`
-9. Generate SSH key for GitHub at `~/.ssh/ghssh`
-10. Rename computer to `RY<serial_number>`
+8. Re-apply BuildCrew tweaks from `~/.pi/agent/patches/buildcrew/`
+9. Install pi extension dependencies with `npm ci` in `~/.pi/`
+10. Generate SSH key for GitHub at `~/.ssh/ghssh`
+11. Rename computer to `RY<serial_number>`
 
 ## Conventions
 

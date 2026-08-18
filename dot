@@ -227,6 +227,7 @@ TOOL_REGISTRY=(
     "Stow dotfiles     ;; -    ;; fn:__stow_dotfiles        ;; true  ;; -         ;; false"
     "pi                ;; pi   ;; fn:__install_pi           ;; true  ;; -         ;; true"
     "Pi packages       ;; -    ;; fn:__install_pi_packages  ;; false ;; -         ;; false"
+    "BuildCrew tweaks  ;; -    ;; fn:__apply_buildcrew_tweaks ;; false ;; -         ;; false"
     "Pi extensions     ;; -    ;; fn:__install_pi_extensions ;; true  ;; -         ;; false"
     "SSH key           ;; -    ;; fn:__generate_ssh_key     ;; true  ;; -         ;; false"
     "Computer rename   ;; -    ;; fn:__rename_computer_step ;; true  ;; -         ;; false"
@@ -370,6 +371,39 @@ __install_pi_packages() {
     else
         __print_warning "Failed to install pi packages; run 'pi update' or 'dot update' later"
         return 1
+    fi
+}
+
+__apply_buildcrew_tweaks() {
+    local patch_base="${HOME}/.pi/agent/patches/buildcrew"
+    local target_base="${HOME}/.pi/agent/npm/node_modules/@hjkl.io/buildcrew"
+
+    if [[ ! -d "$patch_base" ]]; then
+        __print_info "No BuildCrew patches found; skipping"
+        return 0
+    fi
+
+    if [[ ! -d "$target_base" ]]; then
+        __print_warning "BuildCrew npm package not installed yet; skipping tweaks"
+        return 1
+    fi
+
+    local applied=0
+
+    if [[ -f "${patch_base}/agents/architect.md" ]]; then
+        cp "${patch_base}/agents/architect.md" "${target_base}/agents/architect.md"
+        __print_success "Applied BuildCrew architect.md tweak"
+        applied=1
+    fi
+
+    if [[ -f "${patch_base}/pi/extensions/buildcrew-pi.ts" ]]; then
+        cp "${patch_base}/pi/extensions/buildcrew-pi.ts" "${target_base}/pi/extensions/buildcrew-pi.ts"
+        __print_success "Applied BuildCrew buildcrew-pi.ts tweak"
+        applied=1
+    fi
+
+    if [[ $applied -eq 0 ]]; then
+        __print_info "No BuildCrew tweak files to apply"
     fi
 }
 
@@ -837,6 +871,9 @@ cmd_update() {
     else
         __print_warning "pi is not installed; skipping pi update"
     fi
+
+    # Re-apply BuildCrew tweaks after pi packages are updated.
+    __apply_buildcrew_tweaks
 }
 
 cmd_doctor() {

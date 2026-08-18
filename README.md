@@ -52,9 +52,10 @@ dot init
 3. Creates symlinks with GNU Stow
 4. Installs pi via https://pi.dev/install.sh
 5. Installs pi packages from `settings.json`
-6. Installs pi extension dependencies (`npm ci` in `~/.pi/`)
-7. Generates SSH key for GitHub (`~/.ssh/ghssh`)
-8. Renames computer to `RY<serial_number>`
+6. Re-applies BuildCrew tweaks (`~/.pi/agent/patches/buildcrew/`)
+7. Installs pi extension dependencies (`npm ci` in `~/.pi/`)
+8. Generates SSH key for GitHub (`~/.ssh/ghssh`)
+9. Renames computer to `RY<serial_number>`
 
 All steps are required and run automatically.
 
