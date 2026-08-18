@@ -27,10 +27,9 @@ After installation, the `dot` command is available globally once `~/.dotfiles` i
 ├── scripts/            # macOS setup scripts
 │   └── macos.sh        # Curated macOS defaults
 ├── home/              # Configuration files (stowed to ~)
-│   ├── .config/
-│   │   ├── git/       # Git configuration
-│   │   └── ...
-│   └── .ideavimrc     # IntelliJ IDEA Vim config
+│   └── .config/
+│       ├── git/       # Git configuration
+│       └── ...
 ├── packages/
 │   ├── bundle         # Base Brewfile
 │   └── bundle.work    # Optional work-specific packages
@@ -119,6 +118,7 @@ The `packages/bundle` file contains the base set of packages:
 tap "homebrew/cask-fonts"
 
 brew "gh"
+brew "micro"
 brew "stow"
 
 cask "font-sf-mono"
@@ -130,7 +130,7 @@ cask "raycast"
 cask "supacode"
 ```
 
-Use `dot package add <name>` to add packages, or edit `packages/bundle` directly and run `dot init`.
+`micro` is installed as the default terminal editor and is used by Git when it needs an editor.
 
 ### Git
 

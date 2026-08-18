@@ -4,7 +4,7 @@ Minimal, opinionated macOS development environment managed through a custom `dot
 
 ## Project overview
 
-This repository configures a new Mac with a small set of CLI tools and applications, Git configuration, and curated macOS system defaults. It is intentionally minimal: no Fish shell, no Neovim, no Bun/Vite+, no MonoLisa font.
+This repository configures a new Mac with a small set of CLI tools and applications, Git configuration, and curated macOS system defaults. It is intentionally minimal: no Fish shell, no Neovim/Vim/Vi, no Bun/Vite+, no MonoLisa font.
 
 ## Structure
 
@@ -14,10 +14,9 @@ This repository configures a new Mac with a small set of CLI tools and applicati
 ├── scripts/
 │   └── macos.sh        # Curated macOS defaults script
 ├── home/               # Stowed to ~
-│   ├── .config/
-│   │   ├── git/        # Git configuration and aliases
-│   │   └── ...
-│   └── .ideavimrc      # IntelliJ IDEA Vim config
+│   └── .config/
+│       ├── git/        # Git configuration and aliases
+│       └── ...
 ├── packages/
 │   ├── bundle          # Base Brewfile
 │   └── bundle.work     # Optional work-specific packages
@@ -32,6 +31,7 @@ This repository configures a new Mac with a small set of CLI tools and applicati
 ```ruby
 tap "homebrew/cask-fonts"
 brew "gh"
+brew "micro"
 brew "stow"
 cask "font-sf-mono"
 cask "betterdisplay"
@@ -41,6 +41,8 @@ cask "orbstack"
 cask "raycast"
 cask "supacode"
 ```
+
+`micro` is the default terminal editor and Git's `core.editor`.
 
 ## `dot` commands
 
@@ -86,7 +88,7 @@ All steps are required; there are no skip flags.
 - Editing `~/.config/*` directly (changes are lost on re-stow)
 - Putting casks in `packages/bundle.work`
 - Adding skip flags to `dot init`
-- Installing Fish, Neovim, Herdr, Bun, Vite+, or MonoLisa via this setup
+- Installing Fish, Neovim/Vim/Vi, Herdr, Bun, Vite+, or MonoLisa via this setup
 - Using the private `gueriza@me.com` email for GitHub commits
 
 ## Notes
@@ -94,3 +96,4 @@ All steps are required; there are no skip flags.
 - `dot macos` keeps press-and-hold enabled for umlauts and skips Mail, Notification Center, Spotlight re-indexing, hibernation, Terminal/iTerm, and Activity Monitor tweaks.
 - `dot init` requires an admin user on macOS because Homebrew requires it.
 - This setup uses **zsh** or the default login shell, not Fish.
+- The default editor is `micro`, not vim/nano.

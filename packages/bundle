@@ -5,6 +5,7 @@ cask_args appdir: "/Applications"
 tap "homebrew/cask-fonts"
 
 brew "gh"
+brew "micro"
 brew "stow"
 
 cask "font-sf-mono"

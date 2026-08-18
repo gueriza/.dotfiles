@@ -5,13 +5,13 @@ theme = Catppuccin Macchiato
 auto-update-channel = tip
 
 # Shell integrations
-shell-integration = fish
+shell-integration = zsh
 quit-after-last-window-closed = true
 
 # Font family
-font-family = MonoLisa
+font-family = "SF Mono"
 font-style = Regular
-font-style-italic = Regular Italic
+font-style-italic = Italic
 font-style-bold = Bold
 font-style-bold-italic = Bold Italic
 
