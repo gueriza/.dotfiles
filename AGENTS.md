@@ -65,6 +65,14 @@ Workspace-managed extensions (with their own `package.json`) live in `home/.pi/a
 
 After changing extension code or `package.json`, run `npm install` in `home/.pi/` and reload pi with `/reload`.
 
+## Key locations
+
+| Item | Path in repo | Stowed to |
+|------|--------------|-----------|
+| Agent skill | `home/.agents/skills/<name>/SKILL.md` | `~/.agents/skills/<name>/` |
+| Pi extension | `home/.pi/agent/extensions/<name>/` | `~/.pi/agent/extensions/<name>/` |
+| Pi settings | `home/.pi/agent/settings.json` | `~/.pi/agent/settings.json` |
+
 ## `dot` commands
 
 | Command | Purpose |
