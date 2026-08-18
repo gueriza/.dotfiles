@@ -71,6 +71,18 @@ __ensure_xcode_clt() {
     read -r
 }
 
+__require_admin() {
+    if dsmemberutil checkmembership -U "$(whoami)" -G "admin" | grep -q "is a member"; then
+        return 0
+    fi
+
+    __print_error "This user is not an Administrator. Homebrew requires admin privileges on macOS."
+    __print_info "Log in as an admin and run:"
+    __print_info "  sudo dseditgroup -o edit -a $(whoami) -t user admin"
+    __print_info "Then log out and back in, or run dot init from an admin account."
+    return 1
+}
+
 __confirm() {
     local prompt="${1:-Continue?}"
     local default="${2:-n}"
@@ -715,6 +727,7 @@ EOF
 cmd_init() {
     __require_no_args init "$@" || return 1
 
+    __require_admin || return 1
     __ensure_xcode_clt
 
     __print_header "Initializing dotfiles"
