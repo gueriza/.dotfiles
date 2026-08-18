@@ -1,5 +1,5 @@
-# Vite Plus node shims can occasionally take longer than Starship's default
-# 500ms timeout to resolve. Give language-version commands a bit more room and
+# Language-version commands (Node, etc.) can occasionally take longer than
+# Starship's default 500ms timeout to resolve. Give them a bit more room and
 # avoid probing Node in repos that merely contain JS/TS files.
 command_timeout = 2000
 

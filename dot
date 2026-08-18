@@ -20,10 +20,9 @@ readonly DOTFILES_DIR
 # Configuration
 readonly PACKAGES_DIR="${DOTFILES_DIR}/packages"
 readonly HOME_DIR="${DOTFILES_DIR}/home"
-readonly GITHUB_EMAIL="dillon.mulroy@gmail.com"
-readonly GITHUB_PRIVATE_KEY_PATH="${HOME}/.ssh/id_ed25519_github"
+readonly GITHUB_EMAIL="4548351+gueriza@users.noreply.github.com"
+readonly GITHUB_PRIVATE_KEY_PATH="${HOME}/.ssh/ghssh"
 readonly LEGACY_GITHUB_PRIVATE_KEY_PATH="${HOME}/.ssh/key.pub"
-readonly FONT_REPO_URL="git@github.com:dmmulroy/mono-lisa.git"
 
 # Progress indicators
 CURRENT_STEP=0
@@ -201,12 +200,9 @@ TOOL_REGISTRY=(
     "Homebrew          ;; brew ;; fn:__install_homebrew     ;; true  ;; -         ;; true"
     "Brewfile packages ;; -    ;; fn:__install_packages     ;; true  ;; -         ;; false"
     "Stow dotfiles     ;; -    ;; fn:__stow_dotfiles        ;; true  ;; -         ;; false"
-    "Bun               ;; bun  ;; fn:__install_bun          ;; true  ;; -         ;; true"
-    "Vite+             ;; vp   ;; fn:__install_vite_plus    ;; true  ;; -         ;; true"
     "pi                ;; pi   ;; fn:__install_pi           ;; true  ;; -         ;; true"
-    "SSH key           ;; -    ;; fn:__generate_ssh_key     ;; false ;; SKIP_SSH  ;; false"
-    "MonoLisa font     ;; -    ;; fn:__install_font         ;; false ;; SKIP_FONT ;; false"
-    "Fish shell        ;; -    ;; fn:__setup_fish_shell     ;; false ;; -         ;; false"
+    "SSH key           ;; -    ;; fn:__generate_ssh_key     ;; true  ;; -         ;; false"
+    "Computer rename   ;; -    ;; fn:__rename_computer_step ;; true  ;; -         ;; false"
 )
 
 # Parse a registry entry into variables: r_name, r_check, r_install, r_required, r_skip, r_doctor
@@ -320,44 +316,14 @@ __install_homebrew() {
     rm "$log_file"
 }
 
-__install_bun() {
-    if __command_exists bun; then
-        __print_success "Bun is already installed"
-        return 0
-    fi
-
-    __print_info "Installing Bun..."
-    if curl -fsSL https://bun.sh/install | bash; then
-        __print_success "Bun installed successfully"
-    else
-        __print_error "Failed to install Bun"
-        return 1
-    fi
-}
-
-__install_vite_plus() {
-    if __command_exists vp; then
-        __print_success "Vite+ is already installed"
-        return 0
-    fi
-
-    __print_info "Installing Vite+..."
-    if curl -fsSL https://vite.plus | bash; then
-        __print_success "Vite+ installed successfully"
-    else
-        __print_error "Failed to install Vite+"
-        return 1
-    fi
-}
-
 __install_pi() {
     if __command_exists pi; then
         __print_success "pi is already installed"
         return 0
     fi
 
-    __print_info "Installing pi..."
-    if vp install -g @mariozechner/pi-coding-agent; then
+    __print_info "Installing pi from pi.dev..."
+    if curl -fsSL https://pi.dev/install.sh | sh; then
         __print_success "pi installed successfully"
     else
         __print_error "Failed to install pi"
@@ -475,49 +441,80 @@ __generate_ssh_key() {
     fi
 }
 
-__install_font() {
-    local github_private_key
-    if ! github_private_key=$(__existing_github_private_key); then
-        __print_warning "GitHub SSH key not found. Skipping font installation"
+__get_mac_serial_number() {
+    local serial
+    serial=$(ioreg -c IOPlatformExpertDevice -d 2 2>/dev/null | awk -F'"' '/IOPlatformSerialNumber/{print $(NF-1)}' | tr -d '[:space:]')
+    if [[ -z "$serial" ]]; then
+        serial=$(system_profiler SPHardwareDataType 2>/dev/null | awk '/Serial Number/{print $NF}' | tr -d '[:space:]')
+    fi
+    if [[ -z "$serial" ]]; then
+        __print_error "Could not determine Mac serial number"
+        return 1
+    fi
+    printf '%s\n' "$serial"
+}
+
+__set_computer_name() {
+    local name="$1"
+    if [[ -z "$name" ]]; then
+        __print_error "Computer name is required"
+        return 1
+    fi
+
+    local failed=0
+    if ! scutil --set ComputerName "$name" >/dev/null 2>&1; then
+        __print_error "Failed to set ComputerName"
+        failed=1
+    fi
+    if ! scutil --set HostName "$name" >/dev/null 2>&1; then
+        __print_error "Failed to set HostName"
+        failed=1
+    fi
+    if ! scutil --set LocalHostName "$name" >/dev/null 2>&1; then
+        __print_error "Failed to set LocalHostName"
+        failed=1
+    fi
+
+    return $failed
+}
+
+__rename_computer() {
+    local serial new_name
+
+    if ! serial=$(__get_mac_serial_number); then
+        return 1
+    fi
+
+    new_name="RY${serial}"
+
+    local current_computer current_hostname current_localhostname
+    current_computer=$(scutil --get ComputerName 2>/dev/null || echo "(not set)")
+    current_hostname=$(scutil --get HostName 2>/dev/null || echo "(not set)")
+    current_localhostname=$(scutil --get LocalHostName 2>/dev/null || echo "(not set)")
+
+    __print_header "Computer Rename"
+    __print_info "Serial number: $serial"
+    __print_info "Proposed name: $new_name"
+    __print_info "Current names:"
+    echo "  ComputerName:  $current_computer"
+    echo "  HostName:      $current_hostname"
+    echo "  LocalHostName: $current_localhostname"
+
+    if [[ "$current_computer" == "$new_name" && "$current_hostname" == "$new_name" && "$current_localhostname" == "$new_name" ]]; then
+        __print_success "Computer is already named '$new_name'"
         return 0
     fi
 
-    if [[ "$github_private_key" == "$LEGACY_GITHUB_PRIVATE_KEY_PATH" ]]; then
-        __print_warning "Using legacy private key path: $github_private_key"
-    fi
-
-    if ! __confirm "Have you added the SSH key to your GitHub account?" "n"; then
-        __print_warning "Skipping font installation"
-        return 0
-    fi
-
-    local font_temp_dir
-    font_temp_dir=$(mktemp -d)
-    local font_install_dir="${HOME}/Library/Fonts"
-
-    __print_info "Cloning font repository..."
-    if GIT_SSH_COMMAND="ssh -i '$github_private_key' -o IdentitiesOnly=yes" git clone "$FONT_REPO_URL" "$font_temp_dir"; then
-        __print_success "Repository cloned successfully"
-
-        mkdir -p "$font_install_dir"
-        __print_info "Installing font files..."
-
-        local font_count=0
-        while IFS= read -r -d '' font_file; do
-            cp "$font_file" "$font_install_dir/"
-            ((++font_count))
-        done < <(find "$font_temp_dir" -type f \( -name '*.otf' -o -name '*.ttf' \) -print0)
-
-        if [[ $font_count -gt 0 ]]; then
-            __print_success "Installed $font_count font files"
-        else
-            __print_warning "No font files found in repository"
-        fi
+    if __set_computer_name "$new_name"; then
+        __print_success "Computer renamed to '$new_name'"
     else
-        __print_error "Failed to clone font repository"
+        __print_error "Failed to rename computer"
+        return 1
     fi
+}
 
-    rm -rf "$font_temp_dir"
+__rename_computer_step() {
+    __rename_computer
 }
 
 cmd_gen_ssh_key() {
@@ -670,69 +667,40 @@ EOF
     __print_success "SSH key generation complete!"
 }
 
-__setup_fish_shell() {
-    
-    if ! __command_exists fish; then
-        __print_error "Fish shell is not installed"
+cmd_rename_computer() {
+    if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+        cat << EOF
+${BOLD}USAGE:${RESET}
+    ${SCRIPT_NAME} rename-computer
+
+${BOLD}DESCRIPTION:${RESET}
+    Automatically rename this Mac to the format "RY<serial_number>" using the
+    system's hardware serial number. The rename is applied without prompting.
+
+${BOLD}EXAMPLES:${RESET}
+    ${SCRIPT_NAME} rename-computer
+
+${BOLD}NOTES:${RESET}
+    - Sets ComputerName, HostName, and LocalHostName via scutil
+    - Requires administrator privileges
+    - Example result: RYH2WFW1C1Q6NY
+
+EOF
+        return 0
+    fi
+
+    if [[ $# -gt 0 ]]; then
+        __print_error "Unexpected argument: $1"
+        __print_info "Run '${SCRIPT_NAME} rename-computer --help' for usage"
         return 1
     fi
-    
-    local fish_path
-    fish_path=$(command -v fish)
-    
-    # Add fish to /etc/shells if needed
-    if ! grep -q "$fish_path" /etc/shells; then
-        __print_info "Adding Fish to /etc/shells..."
-        echo "$fish_path" | sudo tee -a /etc/shells >/dev/null
-        __print_success "Fish added to /etc/shells"
-    fi
-    
-    # Set fish as default shell
-    if [[ "$SHELL" != "$fish_path" ]]; then
-        __print_info "Setting Fish as default shell..."
-        if chsh -s "$fish_path"; then
-            __print_success "Default shell changed to Fish"
-            __print_info "Please log out and back in for changes to take effect"
-        else
-            __print_error "Failed to change default shell"
-            return 1
-        fi
-    else
-        __print_success "Fish is already the default shell"
-    fi
-    
-    # Install Fisher plugins
-    __print_info "Installing Fish plugins..."
-    if fish -c "fisher install jhillyerd/plugin-git" 2>/dev/null; then
-        __print_success "Fish plugins installed"
-    else
-        __print_warning "Failed to install some Fish plugins"
-    fi
+
+    __rename_computer
 }
 
 # Command functions
 cmd_init() {
-    local inherited_skip_ssh="${SKIP_SSH:-false}"
-    local inherited_skip_font="${SKIP_FONT:-false}"
-    local SKIP_SSH="$inherited_skip_ssh"
-    local SKIP_FONT="$inherited_skip_font"
-
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            --skip-ssh)
-                SKIP_SSH=true
-                ;;
-            --skip-font)
-                SKIP_FONT=true
-                ;;
-            *)
-                __print_error "Unknown init option: $1"
-                __print_info "Run '${SCRIPT_NAME} init --help' for usage"
-                return 1
-                ;;
-        esac
-        shift
-    done
+    __require_no_args init "$@" || return 1
 
     __print_header "Initializing dotfiles"
     __run_init_steps || return 1
@@ -824,19 +792,6 @@ cmd_doctor() {
         ((++issues))
     fi
     
-    # Check Fish
-    if __command_exists fish; then
-        __print_success "Fish shell installed"
-        if [[ "$SHELL" == "$(command -v fish)" ]]; then
-            __print_success "Fish is default shell"
-        else
-            __print_warning "Fish is not default shell"
-        fi
-    else
-        __print_error "Fish shell not installed"
-        ((++issues))
-    fi
-    
     # Check symlinks
     local broken_links=0
     while IFS= read -r -d '' link; do
@@ -880,7 +835,7 @@ cmd_doctor() {
     done
 
     # Additional tools managed outside the registry (brew packages, etc.)
-    local extra_tools=("git" "herdr" "nvim" "node" "npm")
+    local extra_tools=("git" "gh")
     for tool in "${extra_tools[@]}"; do
         if __command_exists "$tool"; then
             __print_success "$tool is available"
@@ -893,23 +848,12 @@ cmd_doctor() {
         __print_warning "Missing development tools: ${missing_tools[*]}"
     fi
     
-    # Check if Fish plugins are installed (Fisher)
-    if __command_exists fish && fish -c "type fisher" >/dev/null 2>&1; then
-        __print_success "Fisher (Fish plugin manager) is available"
-    elif __command_exists fish; then
-        __print_warning "Fisher not installed - Fish plugins may not work"
-    fi
-    
     # Check if dotfiles directory is in PATH
     if echo "$PATH" | grep -q "$DOTFILES_DIR"; then
         __print_success "Dotfiles directory is in PATH"
     else
         __print_warning "Dotfiles directory not in PATH - 'dot' command may not work globally"
-        if [[ "$SHELL" == *"fish"* ]]; then
-            __print_info "Run 'source ~/.config/fish/config.fish' or restart shell to fix"
-        else
-            __print_info "Add 'export PATH=\"$DOTFILES_DIR:\$PATH\"' to your shell profile"
-        fi
+        __print_info "Add 'export PATH=\"$DOTFILES_DIR:\$PATH\"' to your shell profile"
     fi
     
     if [[ $issues -eq 0 ]]; then
@@ -919,6 +863,31 @@ cmd_doctor() {
         fi
     else
         __print_header "Found $issues critical issues"
+    fi
+}
+
+cmd_macos() {
+    __require_no_args macos "$@" || return 1
+
+    local script_path="${DOTFILES_DIR}/scripts/macos.sh"
+    if [[ ! -f "$script_path" ]]; then
+        __print_error "macOS defaults script not found at ${script_path}"
+        return 1
+    fi
+
+    __print_header "Applying macOS system defaults"
+    __print_info "This will modify system preferences and may require sudo."
+
+    if ! __confirm "Apply macOS defaults now?" "n"; then
+        __print_info "Cancelled"
+        return 0
+    fi
+
+    if bash "$script_path"; then
+        __print_success "macOS defaults applied successfully"
+    else
+        __print_error "Failed to apply macOS defaults"
+        return 1
     fi
 }
 
@@ -1000,350 +969,6 @@ cmd_edit() {
         __print_info "Set EDITOR environment variable to specify your preferred editor"
         return 1
     fi
-}
-
-cmd_completions() {
-    __require_no_args completions "$@" || return 1
-    __print_header "Generating Fish shell completions"
-    
-    local completions_dir="${HOME_DIR}/.config/fish/completions"
-    local completions_file="${completions_dir}/dot.fish"
-    
-    # Check if Fish is installed
-    if ! __command_exists fish; then
-        __print_error "Fish shell is not installed"
-        __print_info "Install Fish shell first: brew install fish"
-        return 1
-    fi
-    
-    # Create completions directory if it doesn't exist
-    if [[ ! -d "$completions_dir" ]]; then
-        __print_info "Creating Fish completions directory..."
-        mkdir -p "$completions_dir"
-    fi
-    
-    __print_info "Generating completions file..."
-    
-    # Generate Fish completions
-    cat > "$completions_file" << 'EOF'
-# Fish shell completions for dot command
-# Auto-generated by dot completions command
-
-# Main command completions
-complete -c dot -f
-
-# Commands
-complete -c dot -n "__fish_use_subcommand" -a "init" -d "Initialize and install dotfiles"
-complete -c dot -n "__fish_use_subcommand" -a "update" -d "Update dotfiles, packages, and pi"
-complete -c dot -n "__fish_use_subcommand" -a "doctor" -d "Run diagnostics and check installation"
-complete -c dot -n "__fish_use_subcommand" -a "package" -d "Package management commands"
-complete -c dot -n "__fish_use_subcommand" -a "check-packages" -d "Check which packages are installed/missing"
-complete -c dot -n "__fish_use_subcommand" -a "retry-failed" -d "Retry failed package installations"
-complete -c dot -n "__fish_use_subcommand" -a "benchmark-shell" -d "Benchmark Fish shell startup performance"
-complete -c dot -n "__fish_use_subcommand" -a "gen-ssh-key" -d "Generate SSH key for GitHub/GitLab with email"
-complete -c dot -n "__fish_use_subcommand" -a "stow" -d "Create symlinks for dotfiles using GNU Stow"
-complete -c dot -n "__fish_use_subcommand" -a "completions" -d "Generate Fish shell completions"
-complete -c dot -n "__fish_use_subcommand" -a "link" -d "Install dot command globally (create symlink in PATH)"
-complete -c dot -n "__fish_use_subcommand" -a "unlink" -d "Uninstall global dot command (remove symlink)"
-complete -c dot -n "__fish_use_subcommand" -a "edit" -d "Open dotfiles in editor"
-complete -c dot -n "__fish_use_subcommand" -a "help" -d "Show help message"
-
-# Global and init options
-complete -c dot -n "__fish_seen_subcommand_from init" -l "skip-ssh" -d "Skip SSH key generation"
-complete -c dot -n "__fish_seen_subcommand_from init" -l "skip-font" -d "Skip font installation"
-complete -c dot -n "__fish_use_subcommand" -l "version" -d "Show version information"
-complete -c dot -n "__fish_use_subcommand" -s "h" -l "help" -d "Show help message"
-
-# Package subcommands
-complete -c dot -n "__fish_seen_subcommand_from package" -n "not __fish_seen_subcommand_from add remove update list help" -a "add" -d "Add package to bundle and install it"
-complete -c dot -n "__fish_seen_subcommand_from package" -n "not __fish_seen_subcommand_from add remove update list help" -a "remove" -d "Remove package from bundle and optionally uninstall"
-complete -c dot -n "__fish_seen_subcommand_from package" -n "not __fish_seen_subcommand_from add remove update list help" -a "update" -d "Update packages"
-complete -c dot -n "__fish_seen_subcommand_from package" -n "not __fish_seen_subcommand_from add remove update list help" -a "list" -d "List packages in bundle files"
-complete -c dot -n "__fish_seen_subcommand_from package" -n "not __fish_seen_subcommand_from add remove update list help" -a "help" -d "Show package help"
-
-# Package add completions
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from add" -n "not __fish_seen_subcommand_from brew cask" -a "brew" -d "Brew formula"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from add" -n "not __fish_seen_subcommand_from brew cask" -a "cask" -d "Brew cask"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from add" -a "base" -d "Add to base bundle"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from add" -a "work" -d "Add to work bundle"
-
-# Package remove/update completions
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from remove" -a "base" -d "Remove from base bundle only"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from remove" -a "work" -d "Remove from work bundle only"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from remove" -a "auto" -d "Remove from any bundle"
-
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from update" -a "all" -d "Update all packages"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from update" -a "base" -d "Update base bundle packages only"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from update" -a "work" -d "Update work bundle packages only"
-
-# Package list completions
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from list" -a "all" -d "List all packages"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from list" -a "base" -d "List base packages only"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from list" -a "work" -d "List work packages only"
-
-# Benchmark-shell command options
-complete -c dot -n "__fish_seen_subcommand_from benchmark-shell" -s "r" -l "runs" -d "Number of benchmark runs" -xa "5 10 15 20 25 30"
-complete -c dot -n "__fish_seen_subcommand_from benchmark-shell" -s "v" -l "verbose" -d "Show detailed timing for each run"
-complete -c dot -n "__fish_seen_subcommand_from benchmark-shell" -s "h" -l "help" -d "Show benchmark-shell help"
-
-# Gen-ssh-key command options
-complete -c dot -n "__fish_seen_subcommand_from gen-ssh-key" -s "h" -l "help" -d "Show gen-ssh-key help"
-
-# Dynamic completions for installed packages (when removing or updating)
-function __dot_installed_packages
-    if command -q brew
-        brew list --formula 2>/dev/null | head -20
-        brew list --cask 2>/dev/null | head -20
-    end
-end
-
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from remove" -xa "(__dot_installed_packages)"
-complete -c dot -n "__fish_seen_subcommand_from package; and __fish_seen_subcommand_from update" -xa "(__dot_installed_packages)"
-EOF
-
-    if [[ -f "$completions_file" ]]; then
-        __print_success "Fish completions generated at ${completions_file}"
-        __print_info "Completions will be available in new Fish shell sessions"
-        __print_info "To reload completions in current session, run: source ${completions_file}"
-        
-        # Check if completions are working
-        if __command_exists fish; then
-            __print_info "Testing completions..."
-            if fish -c "complete -C 'dot '" >/dev/null 2>&1; then
-                __print_success "Completions are working correctly"
-            else
-                __print_warning "Completions may need a shell restart to work properly"
-            fi
-        fi
-    else
-        __print_error "Failed to generate completions file"
-        return 1
-    fi
-}
-
-cmd_benchmark_shell() {
-    __print_header "Benchmarking Fish shell startup performance"
-    
-    # Check if Fish is installed
-    if ! __command_exists fish; then
-        __print_error "Fish shell is not installed"
-        __print_info "Install Fish shell first: brew install fish"
-        return 1
-    fi
-    
-    # Parse options
-    local runs=10
-    local verbose=false
-    
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-            -r|--runs)
-                runs="$2"
-                shift 2
-                ;;
-            -v|--verbose)
-                verbose=true
-                shift
-                ;;
-            -h|--help)
-                cat << EOF
-${BOLD}USAGE:${RESET}
-    ${SCRIPT_NAME} benchmark-shell [OPTIONS]
-
-${BOLD}OPTIONS:${RESET}
-    -r, --runs NUM      Number of benchmark runs (default: 10)
-    -v, --verbose       Show detailed timing for each run
-    -h, --help          Show this help
-
-${BOLD}EXAMPLES:${RESET}
-    ${SCRIPT_NAME} benchmark-shell              # Run 10 benchmarks
-    ${SCRIPT_NAME} benchmark-shell -r 20        # Run 20 benchmarks
-    ${SCRIPT_NAME} benchmark-shell -v           # Show verbose output
-
-EOF
-                return 0
-                ;;
-            *)
-                __print_error "Unknown option: $1"
-                __print_info "Run '${SCRIPT_NAME} benchmark-shell --help' for usage"
-                return 1
-                ;;
-        esac
-    done
-    
-    # Validate number of runs
-    if ! [[ "$runs" =~ ^[0-9]+$ ]] || [[ "$runs" -lt 1 ]] || [[ "$runs" -gt 100 ]]; then
-        __print_error "Number of runs must be between 1 and 100"
-        return 1
-    fi
-    
-    __print_info "Running $runs Fish shell startup benchmarks..."
-    
-    # Create temporary script that exits immediately
-    local temp_script
-    temp_script=$(mktemp -t DOT_fish_benchmark_XXXXXX.fish)
-    if [[ -z "$temp_script" ]]; then
-        __print_error "Failed to create temp file"
-        return 1
-    fi
-    # Clean up on return and immediately remove this function-local trap. If
-    # the trap survives until main returns, nounset expands an out-of-scope
-    # temp_script variable and turns a successful benchmark into an error.
-    trap 'rm -f "$temp_script"; trap - RETURN' RETURN
-    echo "exit 0" > "$temp_script"
-    
-    # Array to store timing results
-    local times=()
-    local total_time=0
-    
-    # Run benchmarks using a more sophisticated approach
-    for i in $(seq 1 "$runs"); do
-        if [[ "$verbose" == true ]]; then
-            __print_info "Run $i/$runs..."
-        fi
-        
-        # Use python for high-precision timing if available, otherwise use perl
-        local elapsed
-        if command -v python3 >/dev/null 2>&1; then
-            elapsed=$(python3 -c "
-import time
-import subprocess
-import sys
-start = time.time()
-try:
-    subprocess.run(['fish', '$temp_script'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-    end = time.time()
-    print(f'{end - start:.3f}')
-except:
-    print('0.001')
-")
-        elif command -v perl >/dev/null 2>&1; then
-            elapsed=$(perl -e "
-use Time::HiRes 'time';
-my \$start = time();
-system('fish', '$temp_script', '>/dev/null', '2>&1');
-my \$end = time();
-printf '%.3f', \$end - \$start;
-")
-        else
-            # Fallback to basic approach
-            SECONDS=0
-            fish "$temp_script" >/dev/null 2>&1
-            elapsed="$SECONDS"
-            if [[ "$elapsed" == "0" ]]; then
-                elapsed="0.001"
-            fi
-        fi
-        
-        # Ensure elapsed is a valid number
-        if [[ -z "$elapsed" ]] || ! [[ "$elapsed" =~ ^[0-9]*\.?[0-9]+$ ]]; then
-            elapsed="0.001"
-        fi
-        
-        times+=("$elapsed")
-        if command -v bc >/dev/null 2>&1; then
-            total_time=$(echo "$total_time + $elapsed" | bc -l)
-        else
-            total_time=$(echo "$total_time $elapsed" | awk '{print $1 + $2}')
-        fi
-        
-        if [[ "$verbose" == true ]]; then
-            printf "  Run %2d: %.3f seconds\n" "$i" "$elapsed"
-        fi
-    done
-    
-    # Calculate statistics
-    local avg_time
-    if command -v bc >/dev/null 2>&1; then
-        avg_time=$(echo "scale=3; $total_time / $runs" | bc -l)
-    else
-        avg_time=$(echo "$total_time $runs" | awk '{printf "%.3f", $1/$2}')
-    fi
-    
-    # Find min and max times
-    local min_time="${times[0]}"
-    local max_time="${times[0]}"
-    
-    for time in "${times[@]}"; do
-        if command -v bc >/dev/null 2>&1; then
-            if (( $(echo "$time < $min_time" | bc -l) )); then
-                min_time="$time"
-            fi
-            if (( $(echo "$time > $max_time" | bc -l) )); then
-                max_time="$time"
-            fi
-        else
-            # Fallback for systems without bc
-            if [[ $(echo "$time $min_time" | awk '{print ($1 < $2)}') == 1 ]]; then
-                min_time="$time"
-            fi
-            if [[ $(echo "$time $max_time" | awk '{print ($1 > $2)}') == 1 ]]; then
-                max_time="$time"
-            fi
-        fi
-    done
-    
-    # Generate custom report
-    __print_header "Fish Shell Startup Benchmark Results"
-    echo ""
-    echo -e "${BOLD}Configuration:${RESET}"
-    echo "  Shell: $(fish --version)"
-    echo "  Runs: $runs"
-    echo "  Test: Empty script execution"
-    echo ""
-    
-    echo -e "${BOLD}Performance Results:${RESET}"
-    printf "  Average time: ${GREEN}%.3f${RESET} seconds\n" "$avg_time"
-    printf "  Fastest time: ${GREEN}%.3f${RESET} seconds\n" "$min_time"
-    printf "  Slowest time: ${YELLOW}%.3f${RESET} seconds\n" "$max_time"
-    
-    if command -v bc >/dev/null 2>&1; then
-        local range
-        range=$(echo "scale=3; $max_time - $min_time" | bc -l)
-        printf "  Time range:   ${CYAN}%.3f${RESET} seconds\n" "$range"
-    fi
-    
-    echo ""
-    echo -e "${BOLD}Performance Assessment:${RESET}"
-    
-    # Performance thresholds (in seconds)
-    local excellent=0.050
-    local good=0.100
-    local fair=0.200
-    
-    if command -v bc >/dev/null 2>&1; then
-        if (( $(echo "$avg_time <= $excellent" | bc -l) )); then
-            __print_success "Excellent startup performance! (≤50ms)"
-        elif (( $(echo "$avg_time <= $good" | bc -l) )); then
-            __print_success "Good startup performance (≤100ms)"
-        elif (( $(echo "$avg_time <= $fair" | bc -l) )); then
-            __print_warning "Fair startup performance (≤200ms)"
-        else
-            __print_warning "Slow startup performance (>200ms)"
-            echo ""
-            __print_info "Tips to improve Fish shell startup time:"
-            __print_info "  - Review Fish config.fish for expensive operations"
-            __print_info "  - Consider lazy-loading plugins and functions"
-            __print_info "  - Check for slow network operations in startup scripts"
-            __print_info "  - Use 'fish --profile-startup /tmp/fish-startup.profile -ic exit' to identify startup bottlenecks"
-        fi
-    else
-        # Fallback assessment without bc
-        if [[ $(echo "$avg_time 0.050" | awk '{print ($1 <= $2)}') == 1 ]]; then
-            __print_success "Excellent startup performance! (≤50ms)"
-        elif [[ $(echo "$avg_time 0.100" | awk '{print ($1 <= $2)}') == 1 ]]; then
-            __print_success "Good startup performance (≤100ms)"
-        elif [[ $(echo "$avg_time 0.200" | awk '{print ($1 <= $2)}') == 1 ]]; then
-            __print_warning "Fair startup performance (≤200ms)"
-        else
-            __print_warning "Slow startup performance (>200ms)"
-        fi
-    fi
-    
-    echo ""
-    __print_info "To profile Fish startup in detail, run: fish --profile-startup /tmp/fish-startup.profile -ic exit"
-    __print_info "Then inspect the slowest commands: sort -nr /tmp/fish-startup.profile | head -20"
-    __print_info "Fish config location: ~/.config/fish/config.fish"
 }
 
 cmd_retry_failed() {
@@ -2142,10 +1767,10 @@ __print_command_help() {
         init)
             cat << EOF
 USAGE:
-    ${SCRIPT_NAME} init [--skip-ssh] [--skip-font]
+    ${SCRIPT_NAME} init
 
-Initialize the complete environment. Skip SSH key or font setup with the
-corresponding option.
+Initialize the complete environment. SSH key generation and computer rename
+are always performed.
 EOF
             ;;
         update)
@@ -2153,6 +1778,9 @@ EOF
             ;;
         doctor)
             echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} doctor\n\nRun environment diagnostics."
+            ;;
+        macos)
+            echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} macos\n\nApply curated macOS system defaults (requires sudo)."
             ;;
         package)
             cmd_package_help
@@ -2163,24 +1791,14 @@ EOF
         retry-failed)
             echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} retry-failed\n\nRetry every package recorded by a failed init run."
             ;;
-        benchmark-shell)
-            cat << EOF
-USAGE:
-    ${SCRIPT_NAME} benchmark-shell [-r NUM] [-v]
-
-OPTIONS:
-    -r, --runs NUM      Number of runs (1-100, default: 10)
-    -v, --verbose       Show each timing
-EOF
-            ;;
         gen-ssh-key)
             echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} gen-ssh-key [EMAIL]\n\nGenerate an Ed25519 key, add it to ssh-agent, and copy its public key."
             ;;
+        rename-computer)
+            echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} rename-computer\n\nAutomatically rename this Mac to RY<serial_number> format without prompting."
+            ;;
         stow)
             echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} stow\n\nRe-create symlinks from the repository's home directory."
-            ;;
-        completions)
-            echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} completions\n\nGenerate Fish completions for dot."
             ;;
         link)
             echo -e "${BOLD}USAGE:${RESET}\n    ${SCRIPT_NAME} link\n\nCreate a global symlink for dot."
@@ -2220,13 +1838,13 @@ cmd_help() {
     echo "    init                Initialize and install dotfiles"
     echo "    update              Update dotfiles, packages, and pi"
     echo "    doctor              Run diagnostics and check installation"
+    echo "    macos               Apply curated macOS system defaults"
     echo "    package             Package management commands (add, remove, list)"
     echo "    check-packages      Check which packages are installed/missing"
     echo "    retry-failed        Retry failed package installations"
-    echo "    benchmark-shell     Benchmark Fish shell startup performance"
     echo "    gen-ssh-key         Generate SSH key for GitHub/GitLab with email"
+    echo "    rename-computer     Rename Mac to RY<serial_number> format"
     echo "    stow                Create symlinks for dotfiles using GNU Stow"
-    echo "    completions         Generate Fish shell completions"
     echo "    link                Install dot command globally (create symlink in PATH)"
     echo "    unlink              Uninstall global dot command (remove symlink)"
     echo "    edit                Open dotfiles in editor"
@@ -2238,27 +1856,24 @@ cmd_help() {
     echo "    -h, --help      Show this help message"
     echo ""
     echo -e "${BOLD}INIT OPTIONS:${RESET}"
-    echo "    --skip-ssh      Skip SSH key generation"
-    echo "    --skip-font     Skip font installation"
+    echo "    (none)          All init steps are required"
     echo ""
     
     echo -e "${BOLD}EXAMPLES:${RESET}"
     echo "    ${SCRIPT_NAME} init                      # Full initialization"
-    echo "    ${SCRIPT_NAME} init --skip-ssh           # Initialize without SSH setup"
     echo "    ${SCRIPT_NAME} update                    # Update everything"
     echo "    ${SCRIPT_NAME} doctor                    # Check installation health"
+    echo "    ${SCRIPT_NAME} macos                     # Apply macOS system defaults"
     echo "    ${SCRIPT_NAME} package list              # List all packages"
     echo "    ${SCRIPT_NAME} package add git           # Add git package to base bundle"
     echo "    ${SCRIPT_NAME} package update            # Update all packages"
     echo "    ${SCRIPT_NAME} package remove docker     # Remove docker from bundles"
     echo "    ${SCRIPT_NAME} check-packages            # See package installation status"
     echo "    ${SCRIPT_NAME} retry-failed              # Retry any failed installations"
-    echo "    ${SCRIPT_NAME} benchmark-shell           # Benchmark Fish shell startup time"
-    echo "    ${SCRIPT_NAME} benchmark-shell -r 20 -v  # Run 20 benchmarks with verbose output"
     echo "    ${SCRIPT_NAME} gen-ssh-key               # Generate SSH key (prompts for email)"
     echo "    ${SCRIPT_NAME} gen-ssh-key user@github.com  # Generate SSH key with email"
+    echo "    ${SCRIPT_NAME} rename-computer           # Rename computer to RY<serial> format"
     echo "    ${SCRIPT_NAME} stow                      # Create symlinks for dotfiles"
-    echo "    ${SCRIPT_NAME} completions               # Generate Fish shell completions"
     echo "    ${SCRIPT_NAME} link                      # Install dot command globally in PATH"
     echo ""
     
@@ -2271,7 +1886,7 @@ cmd_help() {
     echo -e "${BOLD}NOTES:${RESET}"
     echo "    - Package installation is resilient to failures"
     echo "    - Failed packages are logged and can be retried later"
-    echo "    - pi CLI installed via the Vite+ tool registry"
+    echo "    - pi CLI installed via https://pi.dev/install.sh"
     echo "    - Doctor command checks all critical development tools"
     echo ""
 }
@@ -2281,14 +1896,6 @@ main() {
     # Parse global options
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --skip-ssh)
-                export SKIP_SSH=true
-                shift
-                ;;
-            --skip-font)
-                export SKIP_FONT=true
-                shift
-                ;;
             --version)
                 echo "${SCRIPT_NAME} version ${VERSION}"
                 exit 0
@@ -2324,6 +1931,9 @@ main() {
         doctor)
             cmd_doctor "$@"
             ;;
+        macos)
+            cmd_macos "$@"
+            ;;
         package)
             cmd_package "$@"
             ;;
@@ -2333,17 +1943,14 @@ main() {
         retry-failed)
             cmd_retry_failed "$@"
             ;;
-        benchmark-shell)
-            cmd_benchmark_shell "$@"
-            ;;
         gen-ssh-key)
             cmd_gen_ssh_key "$@"
             ;;
+        rename-computer)
+            cmd_rename_computer "$@"
+            ;;
         stow)
             cmd_stow "$@"
-            ;;
-        completions)
-            cmd_completions "$@"
             ;;
         link)
             cmd_link "$@"

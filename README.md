@@ -23,9 +23,6 @@ cd ~/.dotfiles
 
 # Full setup (installs everything)
 ./dot init
-
-# Or customize the installation
-./dot init --skip-ssh --skip-font
 ```
 
 After installation, the `dot` command will be available globally for ongoing management. Running `dot` without arguments shows help.
@@ -62,26 +59,15 @@ Complete environment setup with all tools and configurations.
 ```bash
 # Full installation
 dot init
-
-# Skip SSH key generation
-dot init --skip-ssh
-
-# Skip font installation  
-dot init --skip-font
-
-# Skip both SSH and font setup
-dot init --skip-ssh --skip-font
 ```
 
 **What it does:**
 1. Installs Homebrew (if not present)
 2. Installs packages from Brewfiles
 3. Creates symlinks with GNU Stow
-4. Installs Bun runtime
-5. Installs pi via the Vite+ tool registry
-6. Generates SSH key for GitHub (optional)
-7. Installs MonoLisa font (optional)
-8. Sets up Fish shell with plugins
+4. Installs pi via https://pi.dev/install.sh
+5. Generates SSH key for GitHub (required)
+6. Renames computer to RY<serial_number> format (required)
 
 ### Maintenance Commands
 
@@ -102,7 +88,6 @@ Comprehensive diagnostics including:
 - ✅ Homebrew installation
 - ✅ Essential tools (git, herdr, nvim, node, etc.)
 - ✅ pi installation and core development tools
-- ✅ Fish shell configuration
 - ✅ PATH configuration
 - ⚠️ Broken symlinks detection
 - ⚠️ Missing dependencies
@@ -119,59 +104,7 @@ dot retry-failed
 ```
 Attempts to reinstall packages that failed during initial setup.
 
-### Performance & Development Tools
-
-#### `dot benchmark-shell` - Fish Shell Performance Benchmarking
-```bash
-# Run 10 benchmarks (default)
-dot benchmark-shell
-
-# Run specific number of benchmarks
-dot benchmark-shell -r 20
-
-# Show verbose output with individual timings  
-dot benchmark-shell -v
-
-# Combine options
-dot benchmark-shell -r 15 -v
-```
-
-Measures Fish shell startup performance with detailed analysis:
-- **High-precision timing** via Python3 or Perl
-- **Performance assessment** with color-coded results (excellent ≤50ms, good ≤100ms, fair ≤200ms)
-- **Optimization tips** for slow performance
-- **Statistical analysis** including average, min, max, and range
-- **Profiling guidance** for detailed bottleneck identification
-
-**Example Output:**
-```
-=> Fish Shell Startup Benchmark Results
-
-Configuration:
-  Shell: fish, version 4.0.2
-  Runs: 10
-  Test: Empty script execution
-
-Performance Results:
-  Average time: 0.061 seconds
-  Fastest time: 0.048 seconds
-  Slowest time: 0.078 seconds
-  Time range:   0.030 seconds
-
-Performance Assessment:
-✓ Good startup performance (≤100ms)
-```
-
 ### Utility Commands
-
-#### `dot completions` - Generate Fish Shell Completions
-```bash
-dot completions
-```
-Generates comprehensive Fish shell completions for the `dot` command, including:
-- All commands and subcommands
-- Dynamic completions for installed packages
-- Option completions with descriptions
 
 #### `dot edit` - Open in Editor
 ```bash
@@ -249,10 +182,7 @@ dot package remove docker base  # Remove docker from base bundle only
 
 ### Key Configurations
 
-- **Fish Shell**: Custom functions, environment variables, and plugin management via Fisher
-- **Neovim**: Lua-based configuration with lazy.nvim plugin manager
-- **Herdr**: Terminal-native workspaces, tabs, panes, and coding-agent integration
-- **Git**: Conditional work configuration, custom aliases, GPG signing
+- **Git**: Conditional work configuration and custom aliases
 
 ### Architecture Highlights
 
@@ -362,9 +292,8 @@ dot stow
 
 **pi installation issues:**
 ```bash
-# Ensure Vite+ is installed, then install pi from the tool registry
-curl -fsSL https://vite.plus | bash
-vp install -g @mariozechner/pi-coding-agent
+# Install pi manually using the official installer
+curl -fsSL https://pi.dev/install.sh | sh
 ```
 
 ### Getting Help
@@ -402,25 +331,14 @@ dot stow
 ### Selective Installation
 
 ```bash
-# Install only base packages, skip optional components
-dot init --skip-ssh --skip-font
+# Install only base packages (all init steps are required)
+dot init
 
 # Check what's missing
 dot check-packages
 
 # Install work packages later
 brew bundle --file=./packages/bundle.work
-```
-
-### Shell Completions
-
-```bash
-# Generate Fish shell completions
-dot completions
-
-# Completions include dynamic suggestions for:
-# - Package names when using package remove/update
-# - All commands, subcommands, and options
 ```
 
 ## License
