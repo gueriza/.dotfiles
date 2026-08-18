@@ -225,6 +225,7 @@ TOOL_REGISTRY=(
     "Homebrew          ;; brew ;; fn:__install_homebrew     ;; true  ;; -         ;; true"
     "Brewfile packages ;; -    ;; fn:__install_packages     ;; true  ;; -         ;; false"
     "Stow dotfiles     ;; -    ;; fn:__stow_dotfiles        ;; true  ;; -         ;; false"
+    "Pi extensions     ;; -    ;; fn:__install_pi_extensions ;; true  ;; -         ;; false"
     "pi                ;; pi   ;; fn:__install_pi           ;; true  ;; -         ;; true"
     "SSH key           ;; -    ;; fn:__generate_ssh_key     ;; true  ;; -         ;; false"
     "Computer rename   ;; -    ;; fn:__rename_computer_step ;; true  ;; -         ;; false"
@@ -352,6 +353,27 @@ __install_pi() {
         __print_success "pi installed successfully"
     else
         __print_error "Failed to install pi"
+        return 1
+    fi
+}
+
+__install_pi_extensions() {
+    local pi_dir="${HOME}/.pi"
+    if [[ ! -f "${pi_dir}/package.json" ]]; then
+        __print_info "No pi package.json found; skipping extension dependencies"
+        return 0
+    fi
+
+    if ! __command_exists npm; then
+        __print_warning "npm not found; skipping pi extension dependency install"
+        return 0
+    fi
+
+    __print_info "Installing pi extension dependencies..."
+    if (cd "$pi_dir" && npm ci); then
+        __print_success "pi extension dependencies installed"
+    else
+        __print_warning "Failed to install pi extension dependencies"
         return 1
     fi
 }
@@ -783,6 +805,9 @@ cmd_update() {
 
     # Re-stow dotfiles before pi uses checked-out skills and configuration.
     __stow_dotfiles
+
+    # Re-install pi extension dependencies after stow.
+    __install_pi_extensions
 
     # Update pi and its configured packages.
     if __command_exists pi; then

@@ -91,9 +91,10 @@ All steps are required; there are no skip flags.
 3. Install Homebrew
 4. Install packages from `packages/bundle`
 5. Stow dotfiles from `home/` to `~`
-6. Install pi via `https://pi.dev/install.sh`
-7. Generate SSH key for GitHub at `~/.ssh/ghssh`
-8. Rename computer to `RY<serial_number>`
+6. Install pi extension dependencies with `npm ci` in `~/.pi/`
+7. Install pi via `https://pi.dev/install.sh`
+8. Generate SSH key for GitHub at `~/.ssh/ghssh`
+9. Rename computer to `RY<serial_number>`
 
 ## Conventions
 

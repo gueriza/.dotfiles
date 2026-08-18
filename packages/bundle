@@ -6,6 +6,7 @@ tap "homebrew/cask-fonts"
 
 brew "gh"
 brew "micro"
+brew "node"
 brew "stow"
 
 cask "font-sf-mono"
