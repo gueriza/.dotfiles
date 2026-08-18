@@ -1,210 +1,162 @@
 # Dotfiles
 
-A comprehensive, automated dotfiles management system for macOS development environments. Features a powerful CLI tool for setup, maintenance, and AI-powered development insights.
+A minimal, automated dotfiles management system for macOS, built around a custom `dot` CLI tool, GNU Stow, and Homebrew.
 
 ## Overview
 
-This repository contains my personal development environment configuration, managed through a custom CLI tool called `dot`. It uses GNU Stow for symlink management, Homebrew for package installation, and includes configurations for Fish shell, Neovim, Herdr, Git, and other essential development tools.
-
-### Key Features
-
-- 🚀 **One-command setup** - Complete development environment in minutes
-- 🤖 **AI Integration** - pi for AI assistance
-- 📦 **Resilient Package Management** - Continues installation even if packages fail
-- 🔍 **Health Monitoring** - Comprehensive environment diagnostics
-- 🛠️ **Modular Design** - Separate work and personal configurations
+This repository contains a personal macOS development environment configuration. It installs a small set of apps and tools, sets the computer name, configures Git, and applies a curated set of macOS system defaults.
 
 ## Quick Start
 
 ```bash
 # Clone the repository
-git clone https://github.com/dmmulroy/.dotfiles.git ~/.dotfiles
+git clone https://github.com/gueriza/.dotfiles.git ~/.dotfiles
 cd ~/.dotfiles
 
-# Full setup (installs everything)
+# Full setup
 ./dot init
 ```
 
-After installation, the `dot` command will be available globally for ongoing management. Running `dot` without arguments shows help.
+After installation, the `dot` command is available globally once `~/.dotfiles` is in your PATH.
 
 ## Repository Structure
 
 ```
 ~/.dotfiles/
 ├── dot                 # Main CLI tool
+├── scripts/            # macOS setup scripts
+│   └── macos.sh        # Curated macOS defaults
 ├── home/              # Configuration files (stowed to ~)
 │   ├── .config/
-│   │   ├── fish/      # Fish shell configuration
 │   │   ├── git/       # Git configuration
-│   │   ├── nvim/      # Neovim configuration
-│   │   ├── herdr/     # Herdr configuration
 │   │   └── ...
 │   └── .ideavimrc     # IntelliJ IDEA Vim config
 ├── packages/
 │   ├── bundle         # Base Brewfile
-│   └── bundle.work    # Work-specific packages
-├── CLAUDE.md          # Instructions for AI assistants
+│   └── bundle.work    # Optional work-specific packages
 └── README.md          # This file
 ```
 
 ## The `dot` CLI Tool
 
-The `dot` command is a comprehensive management tool for your dotfiles. It handles everything from initial setup to ongoing maintenance and provides AI-powered insights.
-
 ### Installation Commands
 
-#### `dot init` - Initial Setup
-Complete environment setup with all tools and configurations.
+#### `dot init` — Initial Setup
 
 ```bash
-# Full installation
 dot init
 ```
 
 **What it does:**
 1. Installs Homebrew (if not present)
-2. Installs packages from Brewfiles
+2. Installs packages from `packages/bundle`
 3. Creates symlinks with GNU Stow
 4. Installs pi via https://pi.dev/install.sh
-5. Generates SSH key for GitHub (required)
-6. Renames computer to RY<serial_number> format (required)
+5. Generates SSH key for GitHub (`~/.ssh/ghssh`)
+6. Renames computer to `RY<serial_number>`
+
+All steps are required and run automatically.
 
 ### Maintenance Commands
 
-#### `dot update` - Update Everything
+#### `dot update`
+
 ```bash
 dot update
 ```
-- Pulls the latest dotfiles changes with Git
-- Updates Homebrew and automatically upgrades outdated packages
-- Re-stows configuration files
-- Runs `pi update` to update pi and its configured packages
 
-#### `dot doctor` - Health Check
+- Pulls the latest dotfiles changes
+- Updates Homebrew and upgrades outdated packages
+- Re-stows configuration files
+- Runs `pi update`
+
+#### `dot doctor`
+
 ```bash
 dot doctor
 ```
-Comprehensive diagnostics including:
-- ✅ Homebrew installation
-- ✅ Essential tools (git, herdr, nvim, node, etc.)
-- ✅ pi installation and core development tools
-- ✅ PATH configuration
-- ⚠️ Broken symlinks detection
-- ⚠️ Missing dependencies
 
-#### `dot check-packages` - Package Status
-```bash
-dot check-packages
-```
-Shows which packages are installed vs. missing from your Brewfiles.
+Checks:
+- Homebrew installation
+- GNU Stow installation
+- Broken symlinks
+- SSH key presence
+- Required tools: `brew`, `pi`, `git`, `gh`
+- PATH configuration
 
-#### `dot retry-failed` - Retry Failed Installations
+#### `dot macos`
+
 ```bash
-dot retry-failed
+dot macos
 ```
-Attempts to reinstall packages that failed during initial setup.
+
+Applies curated macOS system defaults (Dock, Finder, trackpad, Safari, Messages, screenshots, energy, etc.). Requires `sudo` and asks for confirmation before running.
 
 ### Utility Commands
 
-#### `dot edit` - Open in Editor
 ```bash
-dot edit
+dot stow                # Re-create symlinks
+dot link                # Add dot to PATH
+dot unlink              # Remove dot from PATH
+dot edit                # Open dotfiles in $EDITOR
+dot rename-computer     # Rename Mac to RY<serial_number>
+dot gen-ssh-key         # Generate GitHub SSH key
+dot package list        # List packages
+dot package add <name>  # Add and install a package
+dot package remove      # Remove a package from bundle
+dot package update      # Update packages
+dot check-packages      # Show installed vs missing
+dot retry-failed        # Retry failed installs
 ```
-Opens the dotfiles directory in your default editor (defined by `$EDITOR`).
-
-#### `dot stow` - Update Dotfiles Symlinks
-```bash
-# Create/update symlinks for configuration files
-dot stow
-```
-Re-creates symlinks from `home/` directory to your home directory (`~`). Use this after editing configuration files.
-
-#### `dot link` / `dot unlink` - Global dot Command Installation
-```bash
-# Install dot command globally (add to PATH)
-dot link
-
-# Remove global installation
-dot unlink
-```
-Makes the `dot` command available from any directory by creating a symlink in `/usr/local/bin` or `~/.local/bin`.
 
 ## Configuration
 
 ### Package Management
 
-The system provides comprehensive package management through the `dot package` command and uses two Brewfiles for different contexts:
+The `packages/bundle` file contains the base set of packages:
 
-#### Package Commands
+```ruby
+tap "homebrew/cask-fonts"
 
-```bash
-# List packages
-dot package list              # List all packages
-dot package list base         # List base packages only
-dot package list work         # List work packages only
+brew "gh"
+brew "stow"
 
-# Add packages
-dot package add git           # Add git formula to base bundle
-dot package add docker cask   # Add docker cask to base bundle  
-dot package add kubectl brew work  # Add kubectl to work bundle
-
-# Update packages
-dot package update            # Update all installed packages
-dot package update git        # Update specific package
-dot package update all base   # Update only base bundle packages
-dot package update all work   # Update only work bundle packages
-
-# Remove packages
-dot package remove git        # Remove git from any bundle
-dot package remove docker base  # Remove docker from base bundle only
+cask "font-sf-mono"
+cask "betterdisplay"
+cask "hiddenbar"
+cask "ollama"
+cask "orbstack"
+cask "raycast"
+cask "supacode"
 ```
 
-#### Package Files
+Use `dot package add <name>` to add packages, or edit `packages/bundle` directly and run `dot init`.
 
-**`packages/bundle`** - Base packages for all machines:
-- Development tools: neovim, herdr, fish, git
-- CLI utilities: ripgrep, fd, fzf, starship
-- Applications: Arc browser, Raycast, OrbStack
-- AI tools: aider
+### Git
 
-**`packages/bundle.work`** - Work-specific formula additions:
-- AWS/Kubernetes tools
-- Enterprise development tools
-- Formulae only; casks must be added to the base bundle
+Git configuration lives in `home/.config/git/` and is stowed to `~/.config/git/`.
 
-#### Package Features
+### macOS Defaults
 
-- **Auto-detection**: Package type (brew vs cask) automatically detected
-- **Sorted maintenance**: Packages kept alphabetically sorted within each type
-- **Installation integration**: Adding packages installs them immediately
-- **Update flexibility**: Can update all packages, specific packages, or by bundle
-- **Cleanup included**: Update command includes Homebrew refresh and optional cleanup
+The `scripts/macos.sh` script applies macOS system defaults. It covers:
 
-### Key Configurations
+- General UI/UX
+- Energy and sleep settings
+- Trackpad and keyboard
+- Screen and screenshots
+- Finder
+- Dock and Dashboard
+- Safari
+- Messages
+- Photos
 
-- **Git**: Conditional work configuration and custom aliases
+It skips Mail, Notification Center, Spotlight re-indexing, hibernation, Terminal/iTerm, and Activity Monitor tweaks.
 
-### Architecture Highlights
+## First-Time Setup
 
-- **GNU Stow**: Manages symlinks from `home/` to `~`
-- **Modular Design**: Separate configs for different tools
-- **Conditional Loading**: Work-specific Git config for `~/Code/work/`
-- **Plugin Managers**: Each tool uses its own where applicable (lazy.nvim, Fisher)
-- **Error Resilience**: Package installation continues despite individual failures
-
-## Environment Setup
-
-### Prerequisites
-
-- macOS (Intel or Apple Silicon)
-- Internet connection
-- Terminal access
-
-### First-Time Setup
-
-1. **Clone repository:**
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/dmmulroy/.dotfiles.git ~/.dotfiles
+   git clone https://github.com/gueriza/.dotfiles.git ~/.dotfiles
    cd ~/.dotfiles
    ```
 
@@ -213,141 +165,40 @@ dot package remove docker base  # Remove docker from base bundle only
    ./dot init
    ```
 
-3. **Restart shell or source Fish config:**
+3. **Apply macOS defaults:**
    ```bash
-   # In Fish shell
-   source ~/.config/fish/config.fish
-   
-   # Or restart terminal
+   dot macos
    ```
 
-4. **Verify installation:**
+4. **Verify:**
    ```bash
    dot doctor
    ```
 
-### Customization
-
-#### Adding Packages
-
-**Method 1: Using package commands (recommended):**
-```bash
-# Add package using the package command
-dot package add new-tool             # Adds to base bundle
-dot package add new-app cask         # Adds cask to base bundle
-dot package add work-tool brew work  # Adds to work bundle
-```
-
-**Method 2: Manual editing:**
-Edit `packages/bundle` or `packages/bundle.work`:
-```ruby
-# Add to packages/bundle
-brew "new-tool"
-cask "new-app"
-```
-
-Then run:
-```bash
-dot init  # or brew bundle --file=./packages/bundle
-```
-
-#### Modifying Configurations
-1. Edit files in `home/` directory (not your actual home directory)
-2. Re-stow changes: `dot stow` (or `dot init` for full setup)
-3. Test configuration changes
-
-#### Work-Specific Setup
-The system automatically applies work-specific Git configuration for repositories under `~/Code/work/`.
-
 ## Troubleshooting
-
-### Common Issues
 
 **Command not found: `dot`**
 ```bash
-# Source Fish configuration
-source ~/.config/fish/config.fish
-
-# Or add to PATH manually
 export PATH="$HOME/.dotfiles:$PATH"
 ```
 
 **Package installation failures:**
 ```bash
-# Check what failed
 dot check-packages
-
-# Retry failed packages
 dot retry-failed
 ```
 
 **Broken symlinks:**
 ```bash
-# Diagnose issues
 dot doctor
-
-# Re-create symlinks
 dot stow
 ```
 
 **pi installation issues:**
 ```bash
-# Install pi manually using the official installer
 curl -fsSL https://pi.dev/install.sh | sh
-```
-
-### Getting Help
-
-- Run `dot help` for command overview
-- Run `dot <command> --help` for specific command help
-- Check `dot doctor` for environment issues
-- Review logs in failed package files: `packages/failed_packages_*.txt`
-
-## Development
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make changes in the `home/` directory structure
-4. Test with `dot doctor` and `dot check-packages`
-5. Submit a pull request
-
-### Testing Changes
-
-```bash
-# Make modifications to dotfiles
-# ...
-
-# Test changes
-dot doctor
-
-# Re-stow if needed
-dot stow
-```
-
-## Advanced Usage
-
-### Selective Installation
-
-```bash
-# Install only base packages (all init steps are required)
-dot init
-
-# Check what's missing
-dot check-packages
-
-# Install work packages later
-brew bundle --file=./packages/bundle.work
 ```
 
 ## License
 
 This repository is for personal use. Feel free to fork and adapt for your own needs.
-
-## Acknowledgments
-
-- [GNU Stow](https://www.gnu.org/software/stow/) for symlink management
-- [Homebrew](https://brew.sh/) for package management
-- pi for AI assistance
-- The dotfiles community for inspiration and best practices
