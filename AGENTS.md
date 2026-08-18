@@ -69,7 +69,7 @@ After changing extension code or `package.json`, run `npm install` in `home/.pi/
 
 | Command | Purpose |
 |---------|---------|
-| `dot init` | Full setup: Homebrew → Brewfile → Stow → pi → SSH key → computer rename |
+| `dot init` | Full setup: Homebrew → Brewfile → Stow → pi → pi packages → pi extension deps → SSH key → computer rename |
 | `dot update` | Pull dotfiles, update Homebrew, re-stow, update pi |
 | `dot doctor` | Environment diagnostics |
 | `dot macos` | Apply curated macOS defaults (requires sudo, asks confirmation) |
@@ -91,10 +91,11 @@ All steps are required; there are no skip flags.
 3. Install Homebrew
 4. Install packages from `packages/bundle`
 5. Stow dotfiles from `home/` to `~`
-6. Install pi extension dependencies with `npm ci` in `~/.pi/`
-7. Install pi via `https://pi.dev/install.sh`
-8. Generate SSH key for GitHub at `~/.ssh/ghssh`
-9. Rename computer to `RY<serial_number>`
+6. Install pi via `https://pi.dev/install.sh`
+7. Install pi packages from `~/.pi/agent/settings.json` with `pi update`
+8. Install pi extension dependencies with `npm ci` in `~/.pi/`
+9. Generate SSH key for GitHub at `~/.ssh/ghssh`
+10. Rename computer to `RY<serial_number>`
 
 ## Conventions
 

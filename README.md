@@ -50,10 +50,11 @@ dot init
 1. Installs Homebrew (if not present)
 2. Installs packages from `packages/bundle`
 3. Creates symlinks with GNU Stow
-4. Installs pi extension dependencies (`npm ci` in `~/.pi/`)
-5. Installs pi via https://pi.dev/install.sh
-6. Generates SSH key for GitHub (`~/.ssh/ghssh`)
-7. Renames computer to `RY<serial_number>`
+4. Installs pi via https://pi.dev/install.sh
+5. Installs pi packages from `settings.json`
+6. Installs pi extension dependencies (`npm ci` in `~/.pi/`)
+7. Generates SSH key for GitHub (`~/.ssh/ghssh`)
+8. Renames computer to `RY<serial_number>`
 
 All steps are required and run automatically.
 

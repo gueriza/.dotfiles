@@ -225,8 +225,9 @@ TOOL_REGISTRY=(
     "Homebrew          ;; brew ;; fn:__install_homebrew     ;; true  ;; -         ;; true"
     "Brewfile packages ;; -    ;; fn:__install_packages     ;; true  ;; -         ;; false"
     "Stow dotfiles     ;; -    ;; fn:__stow_dotfiles        ;; true  ;; -         ;; false"
-    "Pi extensions     ;; -    ;; fn:__install_pi_extensions ;; true  ;; -         ;; false"
     "pi                ;; pi   ;; fn:__install_pi           ;; true  ;; -         ;; true"
+    "Pi packages       ;; -    ;; fn:__install_pi_packages  ;; false ;; -         ;; false"
+    "Pi extensions     ;; -    ;; fn:__install_pi_extensions ;; true  ;; -         ;; false"
     "SSH key           ;; -    ;; fn:__generate_ssh_key     ;; true  ;; -         ;; false"
     "Computer rename   ;; -    ;; fn:__rename_computer_step ;; true  ;; -         ;; false"
 )
@@ -353,6 +354,21 @@ __install_pi() {
         __print_success "pi installed successfully"
     else
         __print_error "Failed to install pi"
+        return 1
+    fi
+}
+
+__install_pi_packages() {
+    if ! __command_exists pi; then
+        __print_warning "pi is not installed; skipping pi package install"
+        return 1
+    fi
+
+    __print_info "Installing pi packages from settings.json..."
+    if (cd "$DOTFILES_DIR" && pi update); then
+        __print_success "pi packages installed"
+    else
+        __print_warning "Failed to install pi packages; run 'pi update' or 'dot update' later"
         return 1
     fi
 }

@@ -1,0 +1,12 @@
+{
+  "lastChangelogVersion": "0.84.2",
+  "theme": "dark",
+  "defaultProvider": "kimi-coding",
+  "defaultModel": "kimi-for-coding",
+  "defaultThinkingLevel": "medium",
+  "packages": [
+    "npm:@hjkl.io/buildcrew",
+    "npm:pi-web-access",
+    "npm:@amaster.ai/pi-image-gen"
+  ]
+}
